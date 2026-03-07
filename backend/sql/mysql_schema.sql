@@ -1,0 +1,90 @@
+CREATE DATABASE IF NOT EXISTS jway_blog DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE jway_blog;
+
+CREATE TABLE IF NOT EXISTS categories (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  create_time DATETIME(6) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  create_time DATETIME(6) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  summary VARCHAR(500) NOT NULL,
+  content LONGTEXT NOT NULL,
+  cover_url VARCHAR(255) NOT NULL,
+  publish_date DATE NOT NULL,
+  views INT NOT NULL,
+  is_top BIT(1) NOT NULL,
+  category_id BIGINT,
+  CONSTRAINT fk_posts_category FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE IF NOT EXISTS post_tags (
+  post_id BIGINT NOT NULL,
+  tag_id BIGINT NOT NULL,
+  PRIMARY KEY (post_id, tag_id),
+  CONSTRAINT fk_post_tags_post FOREIGN KEY (post_id) REFERENCES posts(id),
+  CONSTRAINT fk_post_tags_tag FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE IF NOT EXISTS works (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  description VARCHAR(500) NOT NULL,
+  period VARCHAR(255) NOT NULL,
+  team_size VARCHAR(255) NOT NULL,
+  techs LONGTEXT NOT NULL,
+  points LONGTEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  icon VARCHAR(255) NOT NULL,
+  color VARCHAR(255) NOT NULL,
+  type INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS moments (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  timestamp DATE NOT NULL,
+  type VARCHAR(255) NOT NULL,
+  size VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS visitors (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  visitor_key VARCHAR(255) NOT NULL UNIQUE,
+  first_visit_at DATETIME(6) NOT NULL,
+  last_visit_at DATETIME(6) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS visit_events (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  visitor_id BIGINT NOT NULL,
+  path VARCHAR(255) NOT NULL,
+  visited_at DATETIME(6) NOT NULL,
+  CONSTRAINT fk_visit_events_visitor FOREIGN KEY (visitor_id) REFERENCES visitors(id)
+);
+
+CREATE TABLE IF NOT EXISTS website_links (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  section_title VARCHAR(255) NOT NULL,
+  section_icon VARCHAR(255) NOT NULL,
+  section_order INT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description VARCHAR(500) NOT NULL,
+  url VARCHAR(255) NOT NULL,
+  logo_url VARCHAR(255),
+  sort_order INT NOT NULL
+);

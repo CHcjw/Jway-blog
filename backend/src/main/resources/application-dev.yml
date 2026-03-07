@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    # Use a stable absolute file location to avoid data "disappearing"
+    # when the app starts from different working directories.
+    url: jdbc:h2:file:${H2_DB_FILE:${user.home}/.jway-blog/data/jwayblog};MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+
+admin:
+  api-prefix: ${ADMIN_API_PREFIX}
+  username: ${ADMIN_USERNAME}
+  password: ${ADMIN_PASSWORD:}
+  password-hash: ${ADMIN_PASSWORD_HASH:}
+  entry-key: ${ADMIN_ENTRY_KEY}

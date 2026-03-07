@@ -1,0 +1,152 @@
+:root {
+  --blog-header-height: 60px;
+  --blog-hero-height: 100vh;
+  --blog-border-radius: 20px;
+  --blog-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  --blog-bg: #f8fafc;
+  --blog-card-bg: rgba(255, 255, 255, 0.7);
+  --blog-text: #1e293b;
+  --blog-text-secondary: #64748b;
+  --blog-glass-bg: rgba(255, 255, 255, 0.9);
+  --blog-glass-blur: 20px;
+  --primary-color: #49b1f5;
+  --accent-color: #f16247;
+}
+
+html.dark {
+  --blog-bg: #0f172a;
+  --blog-card-bg: rgba(30, 41, 59, 0.7);
+  --blog-text: #f1f5f9;
+  --blog-text-secondary: #94a3b8;
+  --blog-glass-bg: rgba(0, 0, 0, 0.85);
+  --blog-shadow: 0 5px 6px -5px rgba(133, 133, 133, 0.6);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Outfit', 'PingFang SC', system-ui, sans-serif;
+  background-color: var(--blog-bg);
+  color: var(--blog-text);
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 渐变背景叠加层，增加深度感 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 90% 10%, rgba(244, 63, 94, 0.03) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 全局固定背景图 */
+.global-fixed-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-image 0.8s ease;
+}
+
+/* 炫彩字体 */
+.fancy-text {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+
+/* 高级霓虹发光效果 */
+@keyframes neon-glow {
+  0% { 
+    text-shadow: 0 0 10px rgba(99, 102, 241, 0.8), 
+                 0 0 20px rgba(99, 102, 241, 0.4),
+                 0 0 30px rgba(99, 102, 241, 0.2); 
+  }
+  100% { 
+    text-shadow: 0 0 15px rgba(244, 63, 94, 0.8), 
+                 0 0 30px rgba(244, 63, 94, 0.4),
+                 0 0 45px rgba(244, 63, 94, 0.2); 
+  }
+}
+
+.neon-text {
+  color: #fff;
+  animation: neon-glow 3s ease-in-out infinite alternate;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+/* Avatar Rotation (Pro Max) */
+.avatar-img, .spinning-avatar {
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  &:hover {
+    transform: rotate(360deg) scale(1.1);
+    box-shadow: 0 0 25px rgba(73, 177, 245, 0.6);
+  }
+}
+
+/* 卡片样式升级：极致毛玻璃与平滑阴影 (Pro Max) */
+.card-style {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--blog-border-radius);
+  box-shadow: var(--blog-shadow);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.3s;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px inset rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+html.dark .card-style {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  &:hover { 
+    border-color: var(--primary-color); 
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 20px rgba(73, 177, 245, 0.2); 
+  }
+}
+
+/* Staggered entry animation utilities */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-item {
+  animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+.sidebar-box {
+  padding: 24px;
+  margin-bottom: 24px;
+  .box-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    i { margin-right: 10px; color: var(--primary-color); filter: drop-shadow(0 0 5px var(--primary-color)); }
+  }
+}
