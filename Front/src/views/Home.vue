@@ -20,11 +20,11 @@
         <!-- Left Column: Articles -->
         <el-col :xs="24" :sm="24" :md="18">
           <div class="article-grid">
-            <div 
+            <div
               v-for="(post, index) in displayedPosts" 
               :key="post.id" 
-              class="envelope-card card-style reveal-item"
-              :style="{ animationDelay: `${index * 0.1}s` }"
+              class="envelope-card card-style scroll-reveal"
+              :style="{ '--reveal-delay': `${index * 80}ms` }"
               @click="goToPost(post.id)"
             >
               <div class="envelope-top">
@@ -56,7 +56,7 @@
           </div>
 
           <!-- Centered Pagination Wrapper -->
-          <div class="pagination-wrapper">
+          <div class="pagination-wrapper scroll-reveal" style="--reveal-delay: 120ms">
             <el-pagination 
               background 
               layout="prev, pager, next" 
@@ -72,7 +72,7 @@
         <el-col :xs="24" :sm="24" :md="6">
           <aside class="sidebar">
             <!-- Profile -->
-            <div class="sidebar-box profile-card card-style">
+            <div class="sidebar-box profile-card card-style scroll-reveal" style="--reveal-delay: 60ms">
               <div class="avatar-wrapper">
                 <img :src="avatarImage" alt="avatar" class="avatar avatar-rotate" />
               </div>
@@ -98,13 +98,13 @@
             </div>
 
             <!-- Announcement -->
-            <div class="sidebar-box announcement card-style">
+            <div class="sidebar-box announcement card-style scroll-reveal" style="--reveal-delay: 120ms">
               <div class="box-title"><i class="bi bi-megaphone"></i> 公告栏</div>
               <p class="ann-text">欢迎来到我的全新博客！这里记录了我的技术成长与生活点滴。🎉</p>
             </div>
 
             <!-- Latest Posts -->
-            <div class="sidebar-box latest-posts card-style">
+            <div class="sidebar-box latest-posts card-style scroll-reveal" style="--reveal-delay: 180ms">
               <div class="box-title"><i class="bi bi-clock-history"></i> 最新文章</div>
               <div class="latest-list">
                 <div v-for="p in postStore.latestPosts" :key="p.id" class="latest-item" @click="goToPost(p.id)">
@@ -120,7 +120,7 @@
             </div>
 
             <!-- Tags -->
-            <div class="sidebar-box tags-cloud card-style">
+            <div class="sidebar-box tags-cloud card-style scroll-reveal" style="--reveal-delay: 240ms">
               <div class="box-title"><i class="bi bi-tags"></i> 标签云</div>
               <div class="tag-cloud-wrapper">
                 <el-tag v-for="tag in postStore.tagNames.slice(0, 15)" :key="tag" 
@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePostStore } from '../store/posts'
 import { getOssUrl } from '../config/oss'
@@ -176,10 +176,34 @@ const typeWriter = () => {
 
 const currentPage = ref(1)
 const displayedPosts = computed(() => postStore.posts)
+const revealObserver = ref(null)
+
+const initRevealObserver = async () => {
+  if (revealObserver.value) {
+    revealObserver.value.disconnect()
+  }
+  revealObserver.value = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible')
+        revealObserver.value?.unobserve(entry.target)
+      }
+    })
+  }, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -8% 0px'
+  })
+
+  await nextTick()
+  document.querySelectorAll('.scroll-reveal').forEach((el) => {
+    revealObserver.value?.observe(el)
+  })
+}
 
 const handlePageChange = async (val) => {
   currentPage.value = val
   await postStore.fetchPosts(val, 9)
+  await initRevealObserver()
   window.scrollTo({ top: window.innerHeight - 60, behavior: 'smooth' })
 }
 
@@ -192,6 +216,11 @@ onMounted(async () => {
     postStore.fetchLatest(5),
     postStore.fetchTags()
   ])
+  await initRevealObserver()
+})
+
+onBeforeUnmount(() => {
+  revealObserver.value?.disconnect()
 })
 </script>
 
@@ -230,6 +259,26 @@ onMounted(async () => {
 @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translate(-50%, 0);} 40% {transform: translate(-50%, -20px);} }
 
 .main-content { max-width: 1440px; margin: 0px auto; padding: 80px 40px; }
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
 
 .article-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
 

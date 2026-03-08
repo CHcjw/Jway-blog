@@ -26,11 +26,11 @@ public class Work {
     private String teamSize;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String techs;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String points;
 
     public Long getId() { return id; }

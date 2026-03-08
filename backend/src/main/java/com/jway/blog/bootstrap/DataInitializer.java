@@ -1,4 +1,4 @@
-﻿package com.jway.blog.bootstrap;
+package com.jway.blog.bootstrap;
 
 import com.jway.blog.entity.Category;
 import com.jway.blog.entity.Moment;
