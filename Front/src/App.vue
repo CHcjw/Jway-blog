@@ -9,6 +9,9 @@
     <!-- Floating Action Center -->
     <FloatingTools :toggleDarkFunc="toggleDark" />
 
+    <!-- Scroll Cat Widget -->
+    <ScrollCat />
+
     <!-- Navbar -->
     <header :class="['header', { 'is-scrolled': isScrolled }]">
       <div class="scroll-progress" :style="{ width: scrollProgress + '%' }"></div>
@@ -288,6 +291,7 @@ import { usePostStore } from './store/posts'
 import { getOssUrl } from './config/oss'
 import Snowfall from './components/Snowfall.vue'
 import FloatingTools from './components/FloatingTools.vue'
+import ScrollCat from './components/ScrollCat.vue'
 
 const isDark = useDark()
 const _toggleDark = useToggle(isDark)
@@ -527,6 +531,30 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
         padding: 20px; .section-title { font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; color: var(--blog-text-secondary); margin-bottom: 15px; display: block; }
         .tag-flex { display: flex; flex-wrap: wrap; gap: 10px; .premium-tag-pill { padding: 8px 18px; border-radius: 14px; background: rgba(99, 102, 241, 0.05); font-weight: 700; cursor: pointer !important; transition: 0.3s; &:hover { background: var(--primary-color); color: white; transform: translateY(-3px); } } }
         .guide-box { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); .guide-line { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--blog-text-secondary); margin-bottom: 10px; i { color: var(--primary-color); } } }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    width: 95% !important;
+    margin-top: 5vh !important;
+    .search-premium-container {
+      padding: 20px 15px;
+      .search-header-row .close-hint { display: none; }
+      .search-input-area {
+        padding: 12px 15px;
+        gap: 12px;
+        .search-icon-main { font-size: 1.3rem; }
+        .premium-input { font-size: 1.1rem; }
+      }
+      .search-results-area {
+        margin-top: 20px;
+        .premium-result-card {
+           padding: 12px 15px; gap: 12px;
+           .res-icon-box { width: 40px; height: 40px; font-size: 1.1rem; flex-shrink: 0; }
+           .res-body .res-title-row .res-title { font-size: 1rem; line-height: 1.3; }
+        }
+        .search-empty-suggestions .guide-box { display: none; }
       }
     }
   }

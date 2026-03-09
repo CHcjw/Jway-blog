@@ -41,44 +41,8 @@
             <el-switch v-model="form.isTop" />
           </el-form-item>
 
-          <el-form-item label="写作工具">
-            <div class="toolbar">
-              <el-button size="small" @click="insertSnippet('# 主标题\n')">H1</el-button>
-              <el-button size="small" @click="insertSnippet('## 剠题\n')">H2</el-button>
-              <el-button size="small" @click="insertSnippet('### 小标题\n')">H3</el-button>
-              <el-button size="small" @click="insertSnippet('**加粗文本**')">粗体</el-button>
-              <el-button size="small" @click="insertSnippet('<span style=&quot;font-size: 18px;&quot;>大号文本</span>')">大号?</el-button>
-              <el-button size="small" @click="insertSnippet('<span style=&quot;font-size: 13px;&quot;>小号文本</span>')">小号?</el-button>
-              <el-button size="small" @click="insertSnippet('> 引用文本\n')">引用</el-button>
-              <el-button size="small" @click="insertSnippet('```java\n// code\n```\n')">代码</el-button>
-              <el-button size="small" @click="insertImage">插图</el-button>
-              <el-button size="small" @click="generateToc">目录模板</el-button>
-            </div>
-          </el-form-item>
-
-          <el-form-item label="正文">
-            <el-tabs v-model="editorTab" class="editor-tabs">
-              <el-tab-pane label="编辑" name="edit">
-                <el-input
-                  ref="contentInputRef"
-                  v-model="form.content"
-                  type="textarea"
-                  :rows="16"
-                  placeholder="Markdown 内容"
-                />
-              </el-tab-pane>
-              <el-tab-pane label="预览" name="preview">
-                <div class="preview-layout">
-                  <div class="preview-toc">
-                    <h4>目录</h4>
-                    <ul>
-                      <li v-for="item in tocList" :key="item.id" :class="`level-${item.level}`">{{ item.title }}</li>
-                    </ul>
-                  </div>
-                  <div class="preview-body markdown-body" v-html="previewHtml"></div>
-                </div>
-              </el-tab-pane>
-            </el-tabs>
+          <el-form-item label="正文" style="width: 100%;">
+            <div id="vditor" style="width: 100%;"></div>
           </el-form-item>
 
           <el-form-item>
@@ -98,6 +62,8 @@ import { useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import { upsertToc } from '../utils/markdownToc'
 import AdminTabs from '../components/AdminTabs.vue'
+import Vditor from 'vditor'
+import 'vditor/dist/index.css'
 import {
   adminCreatePost,
   adminDeletePost,
@@ -128,20 +94,7 @@ const form = reactive({
   content: ''
 })
 
-const previewHtml = computed(() => md.render(form.content || ''))
-const tocList = computed(() => {
-  const list = []
-  const reg = /^(#{1,3})\s+(.+)$/gm
-  let m
-  while ((m = reg.exec(form.content || '')) !== null) {
-    list.push({
-      level: m[1].length,
-      title: m[2].trim(),
-      id: m[2].trim().toLowerCase().replace(/[^\w\u4e00-\u9fa5]/g, '-')
-    })
-  }
-  return list
-})
+let vditorInstance = null
 
 const loadList = async () => {
   loadingList.value = true
@@ -163,7 +116,9 @@ const resetForm = () => {
   form.isTop = true
   form.content = ''
   tagsInput.value = ''
-  editorTab.value = 'edit'
+  if (vditorInstance) {
+    vditorInstance.setValue('')
+  }
 }
 
 const edit = async (id) => {
@@ -177,7 +132,9 @@ const edit = async (id) => {
   form.isTop = data.isTop
   form.content = data.content
   tagsInput.value = (data.tags || []).join(', ')
-  editorTab.value = 'edit'
+  if (vditorInstance) {
+    vditorInstance.setValue(data.content || '')
+  }
 }
 
 const buildPayload = () => ({
@@ -267,51 +224,20 @@ const logout = () => {
   router.push({ name: 'AdminLogin' })
 }
 
-const insertSnippet = async (text) => {
-  await nextTick()
-  const textarea = contentInputRef.value?.textarea
-  if (!textarea) {
-    form.content += (form.content ? '\n' : '') + text
-    return
-  }
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const before = form.content.slice(0, start)
-  const after = form.content.slice(end)
-  form.content = before + text + after
-  await nextTick()
-  textarea.focus()
-  const pos = start + text.length
-  textarea.setSelectionRange(pos, pos)
-}
-
-const insertImage = async () => {
-  try {
-    const { value } = await ElMessageBox.prompt('请输入图?URL', '插入图片', {
-      inputPlaceholder: 'https://example.com/a.png'
-    })
-    if (!value) return
-    await insertSnippet(`![图片描述](${value})`)
-  } catch (_) {
-    // canceled
-  }
-}
-
-const generateToc = async () => {
-  if (!form.content || !form.content.trim()) {
-    ElMessage.warning('Please input content first')
-    return
-  }
-  const nextContent = upsertToc(form.content)
-  if (nextContent === form.content) {
-    ElMessage.warning('No headings found (# / ## / ###)')
-    return
-  }
-  form.content = nextContent
-  ElMessage.success('TOC updated')
-}
-
-onMounted(loadList)
+onMounted(() => {
+  loadList()
+  vditorInstance = new Vditor('vditor', {
+    height: 600,
+    mode: 'wysiwyg',
+    cache: {
+      enable: false,
+    },
+    value: form.content,
+    input: (val) => {
+      form.content = val
+    }
+  })
+})
 </script>
 
 <style scoped lang="scss">

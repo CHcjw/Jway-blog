@@ -1,27 +1,25 @@
 <template>
   <div class="post-detail-page">
-    <!-- Immersive Banner -->
-    <header class="post-banner" :style="{ backgroundImage: `url(${post?.cover})` }">
-      <div class="banner-content">
-        <h1 class="post-title">{{ post?.title || '文章加载中...' }}</h1>
-        <div class="post-meta" v-if="post">
-          <span class="meta-item"><i class="bi bi-calendar3"></i> 发表于 {{ post?.date }}</span>
-          <span class="divider">|</span>
-          <span class="meta-item pointer" @click="router.push(`/categories/${post?.category}`)">
-            <i class="bi bi-grid"></i> {{ post?.category }}
-          </span>
-          <span class="divider">|</span>
-          <span class="meta-item"><i class="bi bi-stopwatch"></i> 阅读时长约 5 分钟</span>
-        </div>
-      </div>
-    </header>
-
     <!-- Main Content Grid -->
     <main class="post-main-container">
       <el-row :gutter="25">
         <!-- Left: Article Content -->
         <el-col :xs="24" :sm="24" :md="18">
           <article class="post-card card-style glass-effect">
+            <!-- Title Area -->
+            <div class="inner-post-header" v-if="post">
+              <h1 class="inner-post-title">{{ post.title }}</h1>
+              <div class="inner-post-meta">
+                <span class="meta-item"><i class="bi bi-calendar3"></i> 发表于 {{ post.date }}</span>
+                <span class="divider">|</span>
+                <span class="meta-item pointer" @click="router.push(`/categories/${post.category}`)">
+                  <i class="bi bi-grid"></i> {{ post.category }}
+                </span>
+                <span class="divider">|</span>
+                <span class="meta-item"><i class="bi bi-stopwatch"></i> 阅读时长约 5 分钟</span>
+              </div>
+            </div>
+
             <!-- Inject IDs into rendered content for TOC anchoring -->
             <div class="markdown-body" v-html="processedContent"></div>
             
@@ -112,6 +110,13 @@ import { usePostStore } from '../store/posts'
 import { getOssUrl } from '../config/oss'
 import MarkdownIt from 'markdown-it'
 import { extractHeadings } from '../utils/markdownToc'
+import { ElMessage } from 'element-plus'
+
+window.copyMdCode = (text) => {
+  navigator.clipboard.writeText(decodeURIComponent(text)).then(() => {
+    ElMessage.success('代码复制成功')
+  })
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -139,11 +144,43 @@ const processedContent = computed(() => {
       headingIndex += 1
       if (id) token.attrSet('id', id)
     }
-    return self.renderToken(tokens, idx, options)
+    token.attrJoin('class', `custom-heading custom-heading-${level}`)
+    let html = self.renderToken(tokens, idx, options)
+    html += `<i class="bi bi-fan heading-icon"></i> `
+    return html
+  }
+
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    const info = token.info ? token.info.trim() : ''
+    const lang = info || 'text'
+    const langUpper = lang.toUpperCase()
+    const content = md.utils.escapeHtml(token.content)
+    const encodedContent = encodeURIComponent(token.content)
+    
+    return `
+      <div class="mac-code-block">
+        <div class="mac-header">
+          <div class="mac-buttons">
+            <span class="mac-btn close"></span>
+            <span class="mac-btn minimize"></span>
+            <span class="mac-btn expand"></span>
+          </div>
+          <span class="mac-lang">${langUpper}</span>
+          <div class="mac-actions">
+            <button class="mac-copy" onclick="window.copyMdCode('${encodedContent}')" title="复制代码">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+        <pre><code class="language-${lang}">${content}</code></pre>
+      </div>
+    `
   }
 
   const html = md.render(post.value.content)
   md.renderer.rules.heading_open = originalHeadingOpen
+  // clean up fence if needed, but it's fine globally on this md instance
   return html
 })
 
@@ -188,20 +225,17 @@ onMounted(async () => {
 </script>
 
 <style lang="scss">
-.post-detail-page { min-height: 100vh; }
+.post-detail-page { min-height: 100vh; padding-top: 100px; }
 
-.post-banner {
-  height: 400px; background-size: cover; background-position: center;
-  position: relative; display: flex; justify-content: center; align-items: center; color: white;
-  &::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); }
-  .banner-content { position: relative; z-index: 1; text-align: center; }
-  .post-title { font-size: 2.5rem; margin-bottom: 15px; text-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-}
-
-.post-main-container { max-width: 1350px; margin: -40px auto 80px; padding: 0 30px; position: relative; z-index: 2; }
+.post-main-container { max-width: 1350px; margin: 0 auto 80px; padding: 0 30px; position: relative; z-index: 2; }
 
 .post-card { 
   padding: 50px; background: var(--blog-card-bg); min-height: 700px;
+  .inner-post-header {
+    text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px dashed rgba(120,120,120,0.2);
+    .inner-post-title { font-size: 2.2rem; color: var(--blog-text); margin-bottom: 15px; font-weight: bold; }
+    .inner-post-meta { display: flex; justify-content: center; gap: 15px; color: var(--blog-text-secondary); font-size: 0.95rem; .divider { color: rgba(120,120,120,0.3); } }
+  }
   .post-footer-tags { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; gap: 10px; }
   .post-tag-node { cursor: pointer; transition: 0.3s; &:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); } }
 }
@@ -253,10 +287,92 @@ onMounted(async () => {
 
 .markdown-body {
   font-size: 1.1rem; line-height: 2; color: var(--blog-text);
-  h1, h2, h3 { margin-top: 40px; margin-bottom: 20px; font-weight: 700; color: var(--blog-text); scroll-margin-top: 100px; }
+  
+  .custom-heading {
+    margin-top: 45px; margin-bottom: 20px; font-weight: 700; color: #66ccff; scroll-margin-top: 100px;
+    display: flex; align-items: center; gap: 8px; transition: all 0.3s;
+    &:hover { color: #409eff; .heading-icon { transform: rotate(180deg); color: #ff6b81; } }
+    .heading-icon { transition: transform 0.5s ease; color: #66ccff; font-size: 1.2em; display: inline-block; }
+  }
+
   p { margin-bottom: 15px; }
-  pre { background: #2d2d2d; padding: 25px; border-radius: 12px; margin: 30px 0; overflow-x: auto; color: #eee; font-family: 'Fira Code', monospace; }
-  blockquote { border-left: 5px solid #409eff; padding: 15px 25px; background: rgba(64, 158, 255, 0.05); margin: 30px 0; border-radius: 0 8px 8px 0; font-style: italic; color: var(--blog-text-secondary); }
+
+  /* Mac Style Code Block */
+  .mac-code-block {
+    background: #1e1e1e; border-radius: 10px; margin: 30px 0; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    .mac-header {
+      background: #2d2d2d; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333;
+      .mac-buttons {
+        display: flex; gap: 8px;
+        .mac-btn { width: 12px; height: 12px; border-radius: 50%; opacity: 0.8; transition: 0.3s; }
+        .mac-btn:hover { opacity: 1; }
+        .close { background: #ff5f56; }
+        .minimize { background: #ffbd2e; }
+        .expand { background: #27c93f; }
+      }
+      .mac-lang { color: #888; font-size: 0.85rem; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); letter-spacing: 1px; }
+      .mac-actions { display: flex; gap: 12px; align-items: center; color: #888;
+        .mac-copy { background: none; border: none; color: #888; cursor: pointer; font-size: 1.1rem; transition: 0.3s; padding: 0; outline: none; &:hover { color: white; } }
+      }
+    }
+    pre { background: transparent; padding: 20px; margin: 0; overflow-x: auto; color: #eee; font-family: 'Fira Code', monospace; line-height: 1.6; }
+  }
+
+  blockquote { border-left: 5px solid #66ccff; padding: 15px 25px; background: rgba(102, 204, 255, 0.05); margin: 30px 0; border-radius: 0 8px 8px 0; font-style: italic; color: var(--blog-text-secondary); }
+
+  /* Beautiful Links - especially for TOC inside content */
+  a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-bottom: 1px dashed transparent;
+    &:hover {
+      color: #ff6b81;
+      border-bottom-color: #ff6b81;
+    }
+  }
+  
+  ul {
+    padding-left: 20px;
+    li {
+      margin-bottom: 8px;
+      line-height: 1.8;
+      &::marker { color: var(--primary-color); }
+    }
+  }
+
+  /* Beautiful Tables */
+  table {
+    width: 100%;
+    margin: 20px 0;
+    border-collapse: collapse;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+    th, td {
+      padding: 12px 16px;
+      border: 1px solid rgba(120, 120, 120, 0.2);
+    }
+    
+    th {
+      background-color: rgba(64, 158, 255, 0.1);
+      font-weight: 600;
+      color: var(--primary-color);
+      text-align: left;
+    }
+
+    tr {
+      transition: all 0.3s;
+      &:nth-child(even) {
+        background-color: rgba(120, 120, 120, 0.02);
+      }
+      &:hover {
+        background-color: rgba(64, 158, 255, 0.05);
+      }
+    }
+  }
 }
 
 @media (max-width: 900px) { .related-grid { grid-template-columns: 1fr; } .post-card { padding: 30px; } }
