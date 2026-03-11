@@ -135,6 +135,24 @@
           </aside>
         </el-col>
       </el-row>
+
+      <!-- Bottom Exploration Banner to fill empty space elegantly -->
+      <div class="bottom-explore-banner scroll-reveal" style="--reveal-delay: 200ms">
+        <div class="banner-inner card-style">
+          <div class="banner-content">
+            <div class="banner-icon">
+              <i class="bi bi-compass"></i>
+            </div>
+            <div class="banner-text">
+              <h3 class="banner-title">星海浩瀚，探索无界</h3>
+              <p class="banner-subtitle">"The only way to do great work is to love what you do."</p>
+            </div>
+          </div>
+          <button class="banner-btn" @click="router.push('/moments')">
+            <i class="bi bi-stars"></i> 随便逛逛
+          </button>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -284,7 +302,7 @@ onBeforeUnmount(() => {
 
 /* Envelope Card Design */
 .envelope-card {
-  cursor: pointer; display: flex; flex-direction: column; height: 480px;
+  cursor: pointer; display: flex; flex-direction: column; height: 450px;
   background: var(--blog-card-bg); overflow: hidden;
   
   .envelope-top {
@@ -433,10 +451,107 @@ onBeforeUnmount(() => {
   }
 }
 
+/* Bottom Explore Banner */
+.bottom-explore-banner {
+  margin-top: 60px;
+  width: 100%;
+  
+  .banner-inner {
+    padding: 35px 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--blog-card-bg);
+    border: 1px solid rgba(150, 150, 150, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+    
+    &::before {
+       content: '';
+       position: absolute;
+       top: 0; left: 0; right: 0; bottom: 0;
+       background: radial-gradient(circle at right top, rgba(73, 177, 245, 0.08) 0%, transparent 40%),
+                   radial-gradient(circle at left bottom, rgba(244, 63, 94, 0.08) 0%, transparent 40%);
+       z-index: 0;
+       pointer-events: none;
+    }
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+      border-color: rgba(73, 177, 245, 0.3);
+    }
+
+    .banner-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      
+      .banner-icon {
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        background: rgba(99, 102, 241, 0.1);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        box-shadow: inset 0 0 15px rgba(99, 102, 241, 0.15);
+        animation: float-icon 4s ease-in-out infinite;
+      }
+      
+      .banner-text {
+        .banner-title {
+          font-size: 1.4rem;
+          font-weight: 900;
+          color: var(--blog-text);
+          margin: 0 0 8px;
+          letter-spacing: 1px;
+        }
+        .banner-subtitle {
+          font-size: 0.95rem;
+          color: var(--blog-text-secondary);
+          margin: 0;
+          font-style: italic;
+        }
+      }
+    }
+    
+    .banner-btn {
+      position: relative;
+      z-index: 1;
+      padding: 12px 28px;
+      border-radius: 30px;
+      border: none;
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer !important;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 5px 20px rgba(73, 177, 245, 0.3);
+      transition: all 0.3s;
+      outline: none;
+      
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 30px rgba(73, 177, 245, 0.5);
+      }
+      
+      i { font-size: 1.2rem; }
+    }
+  }
+}
+
 @media (max-width: 1280px) { .article-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { 
   .article-grid { grid-template-columns: 1fr; gap: 25px; } 
   .main-content { padding: 40px 20px; }
   .hero-section .hero-container { padding: 0 20px; }
+  .bottom-explore-banner { display: none !important; }
 }
 </style>
+

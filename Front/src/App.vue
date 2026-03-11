@@ -1,10 +1,9 @@
 <template>
   <div :class="['app-container', { 'dark': isDark }]">
-    <!-- Global Fixed Background -->
     <div class="global-fixed-bg" :style="{ backgroundImage: `url(${computedHeroImage})` }"></div>
 
-    <!-- Snowfall Animation -->
-    <Snowfall />
+    <!-- Trailing Mouse Effect -->
+    <MouseEffect />
 
     <!-- Floating Action Center -->
     <FloatingTools :toggleDarkFunc="toggleDark" />
@@ -259,6 +258,16 @@
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
+/* BRUTALIST GLOBAL CURSOR OVERRIDE - MUST BE STATIC TO PREVENT RE-APPEARING DURING VUE DOM UPDATES */
+@media (hover: hover) and (pointer: fine) {
+  * { cursor: none !important; }
+  ::before, ::after { cursor: none !important; }
+  :hover, :active, :focus { cursor: none !important; }
+  .el-popper, .el-dropdown-menu, .el-dropdown-menu__item, [role="tooltip"],
+  .el-dialog, .el-dialog__wrapper, .el-overlay, .el-overlay-dialog { cursor: none !important; }
+  iframe, canvas, svg, image, input, textarea { cursor: none !important; }
+}
+
 @keyframes dropdownEnter {
   from { opacity: 0; transform: translateY(-10px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -290,8 +299,10 @@ import { useDark, useToggle } from '@vueuse/core'
 import { usePostStore } from './store/posts'
 import { getOssUrl } from './config/oss'
 import Snowfall from './components/Snowfall.vue'
+import MouseEffect from './components/MouseEffect.vue'
 import FloatingTools from './components/FloatingTools.vue'
 import ScrollCat from './components/ScrollCat.vue'
+import { ElNotification } from 'element-plus'
 
 const isDark = useDark()
 const _toggleDark = useToggle(isDark)
@@ -317,14 +328,39 @@ const menuItems = [
   { label: '网址导航', path: '/navigate/website', icon: 'bi-compass', colorClass: 'c-nav' }
 ]
 
+const showThemeNotification = () => {
+  if (isDark.value) {
+    ElNotification({
+      title: '关灯啦 🌙',
+      message: '当前已成功切换至夜间模式！',
+      type: 'success',
+      position: 'top-left'
+    })
+  } else {
+    ElNotification({
+      title: '开灯啦 🌞',
+      message: '当前已成功切换至白天模式！',
+      type: 'success',
+      position: 'top-left'
+    })
+  }
+}
+
 const toggleDark = (event) => {
   const isTransition = document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (!isTransition) { _toggleDark(); return }
+  if (!isTransition) { 
+    _toggleDark(); 
+    showThemeNotification();
+    return 
+  }
   const x = event.clientX, y = event.clientY
   const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
   document.documentElement.classList.add('switching')
   const transition = document.startViewTransition(async () => { _toggleDark() })
-  transition.finished.finally(() => document.documentElement.classList.remove('switching'))
+  transition.finished.finally(() => {
+    document.documentElement.classList.remove('switching')
+    showThemeNotification()
+  })
   transition.ready.then(() => {
     document.documentElement.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
@@ -365,6 +401,8 @@ const updateRunTime = () => {
 let timer
 onMounted(() => {
   postStore.fetchTags()
+  
+  // Clean scroll listener attachment only. The loading interceptors have been entirely removed.
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); searchVisible.value = true } })
   updateRunTime(); timer = setInterval(updateRunTime, 1000); handleScroll()
@@ -449,7 +487,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
 
   .header-left, .header-right { flex: 1; }
   .header-left .logo-static { 
-    font-size: 1.4rem; font-weight: 900; font-family: 'Outfit'; cursor: pointer !important;
+    font-size: 1.4rem; font-weight: 900; font-family: 'Outfit';
     display: flex; align-items: center; gap: 8px; user-select: none;
     white-space: nowrap;
     color: rgba(255, 255, 255, 0.9); text-shadow: 0 0 15px var(--accent-color);
@@ -463,13 +501,13 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
 
   .header-center { flex: 2; display: flex; justify-content: center; }
   .center-content-wrapper { 
-    &.clickable-top { cursor: pointer !important; user-select: none; &:hover { transform: scale(1.05); } }
+    &.clickable-top { user-select: none; &:hover { transform: scale(1.05); } }
   }
 
   .menu {
     display: flex; gap: 15px; align-items: center;
     .menu-item {
-      cursor: pointer !important; padding: 10px 18px; border-radius: 12px;
+      padding: 10px 18px; border-radius: 12px;
       font-weight: 600; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.2);
       display: flex; align-items: center; gap: 8px; transition: all 0.3s ease-in-out;
       user-select: none;
@@ -486,7 +524,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
   .header-icons { display: flex; gap: 15px; align-items: center; justify-content: flex-end; }
   .icon-wrapper {
     width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.1);
-    display: flex; align-items: center; justify-content: center; cursor: pointer !important;
+    display: flex; align-items: center; justify-content: center;
     font-size: 1.2rem; transition: 0.3s; user-select: none;
     &:hover { background: var(--primary-color); color: white; transform: scale(1.1) rotate(5deg); box-shadow: 0 5px 15px rgba(73, 177, 245, 0.4); }
   }
@@ -512,6 +550,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
       display: flex; align-items: center; gap: 20px; padding: 15px 25px; border-radius: 20px;
       background: var(--blog-card-bg); border: 2px solid rgba(150, 150, 150, 0.2);
       transition: all 0.4s ease;
+      /* removed the cursor: help css override that was breaking the global none */
       &:focus-within { border-color: var(--primary-color); box-shadow: 0 0 20px rgba(73, 177, 245, 0.3); background: var(--blog-bg); }
       .search-icon-main { font-size: 1.6rem; color: var(--primary-color); transition: 0.3s; }
       &:focus-within .search-icon-main { transform: scale(1.1) rotate(10deg); text-shadow: 0 0 10px var(--primary-color); }
@@ -521,7 +560,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
       margin-top: 30px; max-height: 400px; overflow-y: auto; scrollbar-width: none;
       .premium-result-card {
         display: flex; align-items: center; gap: 20px; padding: 18px 25px; border-radius: 20px; transition: 0.4s; margin-bottom: 12px;
-        background: var(--blog-card-bg); border: 1px solid rgba(150, 150, 150, 0.15); cursor: pointer !important; 
+        background: var(--blog-card-bg); border: 1px solid rgba(150, 150, 150, 0.15); 
         &:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary-color); transform: translateX(8px) scale(1.01); box-shadow: 0 5px 15px rgba(0,0,0,0.1); .res-arrow { opacity: 1; transform: translateX(0); } }
         .res-icon-box { width: 50px; height: 50px; border-radius: 15px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--primary-color); }
         .res-body { flex: 1; .res-title-row { display: flex; align-items: center; gap: 15px; .res-title { font-weight: 800; font-size: 1.15rem; color: var(--blog-text); } .res-badge { font-size: 0.65rem; padding: 3px 10px; background: var(--primary-color); color: white; border-radius: 20px; font-weight: 900; } } .res-meta-info { font-size: 0.8rem; color: var(--blog-text-secondary); margin-top: 5px; } }
@@ -529,7 +568,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
       }
       .search-empty-suggestions {
         padding: 20px; .section-title { font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; color: var(--blog-text-secondary); margin-bottom: 15px; display: block; }
-        .tag-flex { display: flex; flex-wrap: wrap; gap: 10px; .premium-tag-pill { padding: 8px 18px; border-radius: 14px; background: rgba(99, 102, 241, 0.05); font-weight: 700; cursor: pointer !important; transition: 0.3s; &:hover { background: var(--primary-color); color: white; transform: translateY(-3px); } } }
+        .tag-flex { display: flex; flex-wrap: wrap; gap: 10px; .premium-tag-pill { padding: 8px 18px; border-radius: 14px; background: rgba(99, 102, 241, 0.05); font-weight: 700; transition: 0.3s; &:hover { background: var(--primary-color); color: white; transform: translateY(-3px); } } }
         .guide-box { margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); .guide-line { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--blog-text-secondary); margin-bottom: 10px; i { color: var(--primary-color); } } }
       }
     }
@@ -562,7 +601,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
 
 /* FOOTER ASYMMETRIC REBORN */
 .footer {
-  background: var(--blog-glass-bg); backdrop-filter: blur(25px); border-radius: 40px 40px 0 0; padding: 100px 0 60px; margin-top: 120px; position: relative; border-top: 1px solid rgba(255,255,255,0.2); box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
+  background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); border-radius: 40px 40px 0 0; padding: 100px 0 60px; margin-top: 40px; position: relative; border-top: 1px solid rgba(255,255,255,0.4); box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
   .aurora-line { width: 100%; height: 3px; position: absolute; top: 0; background: linear-gradient(90deg, transparent, var(--primary-color), var(--accent-color), transparent); opacity: 0.6; border-radius: 40px 40px 0 0; }
   .footer-wrap { max-width: 1300px; margin: 0 auto; padding: 0 40px; }
   .footer-grid { 
@@ -571,13 +610,13 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
   }
   .footer-logo { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 25px; .emoji { font-size: 2.2rem; } h2 { font-size: 2rem; margin: 0; } }
   .motto { font-size: 1.1rem; line-height: 1.8; color: var(--blog-text-secondary); font-style: italic; max-width: 400px; margin: 0 auto; }
-  .footer-social { display: flex; justify-content: center; gap: 25px; margin-top: 35px; font-size: 1.6rem; color: var(--blog-text-secondary); i:hover { color: var(--primary-color); transform: scale(1.2); transition: 0.3s; cursor: pointer !important; } }
+  .footer-social { display: flex; justify-content: center; gap: 25px; margin-top: 35px; font-size: 1.6rem; color: var(--blog-text-secondary); i:hover { color: var(--primary-color); transform: scale(1.2); transition: 0.3s; } }
   .footer-subtitle { font-weight: 900; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; color: var(--blog-text); }
   .nav-links { display: flex; flex-direction: column; align-items: center; gap: 18px; .el-link { font-weight: 700; color: var(--blog-text-secondary); &:hover { color: var(--primary-color); transform: translateY(-3px); } } }
   
   .footer-cta-btn {
     background: #66ccff; color: #fff; border-radius: 30px; padding: 12px 28px; 
-    border: none; font-weight: 900; cursor: pointer; transition: 0.3s;
+    border: none; font-weight: 900; transition: 0.3s;
     box-shadow: 0 4px 15px rgba(102, 204, 255, 0.4);
     &:hover { transform: scale(1.05) translateY(-3px); background: var(--primary-color); box-shadow: 0 10px 25px rgba(102, 204, 255, 0.6); }
   }
@@ -609,7 +648,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
     .drawer-menu { 
       flex: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; scrollbar-width: none;
       .dreamy-menu-item { 
-        display: flex; align-items: center; padding: 16px 20px; border-radius: 20px; cursor: pointer !important; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: flex; align-items: center; padding: 16px 20px; border-radius: 20px; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         background: var(--blog-card-bg); 
         border: 2px solid rgba(150, 150, 150, 0.15);
         box-shadow: 0 4px 10px rgba(0,0,0,0.03);
@@ -676,4 +715,5 @@ html.dark {
 ::view-transition-group(root) { animation-duration: 400ms; }
 .switching, .switching * { transition: none !important; }
 html { scrollbar-gutter: stable; }
+
 </style>

@@ -1,6 +1,7 @@
 package com.jway.blog.admin;
 
 import com.jway.blog.admin.dto.AdminPostUpsertRequest;
+import com.jway.blog.common.MarkdownTocUtil;
 import com.jway.blog.dto.PostDetailDto;
 import com.jway.blog.dto.PostPageDto;
 import com.jway.blog.dto.PostSummaryDto;
@@ -84,7 +85,7 @@ public class AdminPostService {
 
         post.setTitle(req.title().trim());
         post.setSummary(req.summary().trim());
-        post.setContent(req.content());
+        post.setContent(MarkdownTocUtil.upsertToc(req.content()));
         post.setCoverUrl(req.cover().trim());
         post.setPublishDate(LocalDate.parse(req.date().trim()));
         post.setTop(Boolean.TRUE.equals(req.isTop()));

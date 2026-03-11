@@ -150,3 +150,29 @@ html.dark .card-style {
     i { margin-right: 10px; color: var(--primary-color); filter: drop-shadow(0 0 5px var(--primary-color)); }
   }
 }
+
+/* Base Transition for Interactive Elements */
+button, .el-button, a, .clickable-top, .avatar-sm, .post-tag-node, .icon-wrapper {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Global Button Hover Glow Effect */
+button:not(:disabled):hover, .el-button:not(.is-disabled):hover {
+  box-shadow: 0 0 15px 4px rgba(73, 177, 245, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px);
+  border-color: var(--primary-color) !important;
+  z-index: 10;
+}
+
+button:not(:disabled):active, .el-button:not(.is-disabled):active {
+  transform: translateY(1px);
+  box-shadow: 0 0 8px 2px rgba(73, 177, 245, 0.6) !important;
+}
+
+/* 彻底、全局禁用原生鼠标光标 (包括任何UI库自带的悬停小手) */
+@media (hover: hover) and (pointer: fine) {
+  html, body, #app, #app *, #app *:hover, #app :active, #app :focus,
+  .el-button, .el-dropdown-menu__item, .menu-item {
+    cursor: none !important;
+  }
+}

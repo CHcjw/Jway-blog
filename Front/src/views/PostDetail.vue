@@ -1,11 +1,11 @@
 <template>
-  <div class="post-detail-page">
+  <div class="post-detail-page" @copy="handleCopy">
     <!-- Main Content Grid -->
     <main class="post-main-container">
-      <el-row :gutter="25">
+      <el-row :gutter="25" style="align-items: stretch;">
         <!-- Left: Article Content -->
-        <el-col :xs="24" :sm="24" :md="18">
-          <article class="post-card card-style glass-effect">
+        <el-col :xs="24" :sm="24" :md="18" style="display: flex; flex-direction: column;">
+          <article class="post-card card-style glass-effect" style="flex: 1;">
             <!-- Title Area -->
             <div class="inner-post-header" v-if="post">
               <h1 class="inner-post-title">{{ post.title }}</h1>
@@ -67,7 +67,7 @@
         </el-col>
 
         <!-- Right: Sidebar -->
-        <el-col :xs="0" :sm="0" :md="6">
+        <el-col :xs="0" :sm="0" :md="6" style="display: flex; flex-direction: column;">
           <aside class="post-sidebar">
             <div class="sidebar-box profile-mini card-style">
               <div class="avatar-container">
@@ -88,7 +88,7 @@
                 <div 
                   v-for="item in toc" 
                   :key="item.id" 
-                  :class="['toc-item', `toc-level-${item.level}`]"
+                  :class="['toc-item', `toc-level-${item.level}`, { active: activeTocId === item.id }]"
                   @click="scrollToAnchor(item.id)"
                 >
                   {{ item.title }}
@@ -104,17 +104,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePostStore } from '../store/posts'
 import { getOssUrl } from '../config/oss'
 import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/atom-one-dark.css'
 import { extractHeadings } from '../utils/markdownToc'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElNotification } from 'element-plus'
 
 window.copyMdCode = (text) => {
   navigator.clipboard.writeText(decodeURIComponent(text)).then(() => {
-    ElMessage.success('代码复制成功')
+    ElNotification({
+      title: '哎嘿！复制成功 🍬',
+      message: '若要转载最好保留原文链接哦，给你一个大大的赞！',
+      type: 'success',
+      position: 'top-left'
+    })
   })
 }
 
@@ -135,6 +142,28 @@ const processedContent = computed(() => {
   const headingIds = toc.value.map(item => item.id)
   let headingIndex = 0
   const originalHeadingOpen = md.renderer.rules.heading_open
+  const originalText = md.renderer.rules.text || function(tokens, idx, options, env, self) {
+    return md.utils.escapeHtml(tokens[idx].content)
+  }
+
+  md.renderer.rules.text = (tokens, idx, options, env, self) => {
+    const content = tokens[idx].content
+    const regex = /([a-zA-Z]+)/g
+    let html = ''
+    let lastIndex = 0
+    let match
+    while ((match = regex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        html += md.utils.escapeHtml(content.substring(lastIndex, match.index))
+      }
+      html += `<span class="highlight-word">${md.utils.escapeHtml(match[1])}</span>`
+      lastIndex = regex.lastIndex
+    }
+    if (lastIndex < content.length) {
+      html += md.utils.escapeHtml(content.substring(lastIndex))
+    }
+    return html
+  }
 
   md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
@@ -153,9 +182,40 @@ const processedContent = computed(() => {
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
     const info = token.info ? token.info.trim() : ''
-    const lang = info || 'text'
-    const langUpper = lang.toUpperCase()
-    const content = md.utils.escapeHtml(token.content)
+    const lang = info
+    
+    let contentHtml = md.utils.escapeHtml(token.content)
+    let finalLang = lang || 'text'
+
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        contentHtml = hljs.highlight(token.content, { language: lang }).value
+      } catch (__) {}
+    } else {
+      try {
+        // 限定自动识别的语言范围，防止出现 XQUERY、HANDLEBARS 等冷门语言的乱标，同时大大提高准确率
+        const languageSubset = [
+          'java', 'javascript', 'typescript', 'html', 'css', 
+          'vue', 'xml', 'json', 'sql', 'bash', 'python', 'c', 'cpp', 'yaml', 'markdown'
+        ]
+        
+        let actualCode = token.content
+        // 如果系统无法识别 vue 的高亮模块，我们让它降级为 html 并在显示角标时转换
+        const result = hljs.highlightAuto(actualCode, languageSubset)
+        contentHtml = result.value
+        finalLang = result.language || 'text'
+        
+        // 如果猜测是 xml，因为前端写了很多标签，实际上通常是 html 或 vue
+        if (finalLang === 'xml') {
+          finalLang = 'html'
+        }
+      } catch (__) {}
+    }
+
+    let langUpper = finalLang.toUpperCase()
+    if (langUpper === 'HTML' && token.content.includes('Vue') && token.content.includes('<script')) {
+      langUpper = 'VUE'
+    }
     const encodedContent = encodeURIComponent(token.content)
     
     return `
@@ -173,13 +233,14 @@ const processedContent = computed(() => {
             </button>
           </div>
         </div>
-        <pre><code class="language-${lang}">${content}</code></pre>
+        <pre><code class="language-${finalLang} hljs">${contentHtml}</code></pre>
       </div>
     `
   }
 
   const html = md.render(post.value.content)
   md.renderer.rules.heading_open = originalHeadingOpen
+  md.renderer.rules.text = originalText
   // clean up fence if needed, but it's fine globally on this md instance
   return html
 })
@@ -204,6 +265,51 @@ const scrollToAnchor = (id) => {
   }
 }
 
+const activeTocId = ref('')
+
+const handleCopy = () => {
+  const selection = document.getSelection()
+  if (selection && selection.toString().length > 0) {
+    ElNotification({
+      title: '哎嘿！复制成功 🍬',
+      message: '若要转载最好保留原文链接哦，给你一个大大的赞！',
+      type: 'success',
+      position: 'top-left'
+    })
+  }
+}
+
+const handleScroll = () => {
+  const headings = Array.from(document.querySelectorAll('.markdown-body .custom-heading'))
+  if (!headings.length) return
+
+  let currentActive = headings[0]?.id || ''
+  const scrollPosition = window.scrollY + 180
+
+  for (const heading of headings) {
+    const top = heading.getBoundingClientRect().top + window.scrollY
+    if (top <= scrollPosition) {
+      currentActive = heading.id
+    } else {
+      break
+    }
+  }
+
+  if (activeTocId.value !== currentActive) {
+    activeTocId.value = currentActive
+    
+    nextTick(() => {
+      const activeEl = document.querySelector(`.toc-content .toc-item.active`)
+      const container = document.querySelector('.toc-content')
+      if (activeEl && container) {
+        const containerHeight = container.clientHeight
+        const scrollTop = activeEl.offsetTop - (containerHeight / 2) + (activeEl.clientHeight / 2)
+        container.scrollTo({ top: scrollTop, behavior: 'smooth' })
+      }
+    })
+  }
+}
+
 const loadPostData = async (id) => {
   post.value = await postStore.fetchPostById(id)
   relatedPosts.value = await postStore.fetchRelated(id, 4)
@@ -215,12 +321,18 @@ watch(
     if (!id) return
     await loadPostData(Number(id))
     window.scrollTo(0, 0)
+    setTimeout(handleScroll, 100)
   },
   { immediate: true }
 )
 
 onMounted(async () => {
   await Promise.all([postStore.fetchPosts(1, 1), postStore.fetchTags()])
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -229,8 +341,8 @@ onMounted(async () => {
 
 .post-main-container { max-width: 1350px; margin: 0 auto 80px; padding: 0 30px; position: relative; z-index: 2; }
 
-.post-card { 
-  padding: 50px; background: var(--blog-card-bg); min-height: 700px;
+.post-card {
+  padding: 50px; background: var(--blog-card-bg); min-height: 700px; height: 100%;
   .inner-post-header {
     text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px dashed rgba(120,120,120,0.2);
     .inner-post-title { font-size: 2.2rem; color: var(--blog-text); margin-bottom: 15px; font-weight: bold; }
@@ -241,6 +353,11 @@ onMounted(async () => {
 }
 
 .post-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin-bottom: 0 !important;
   .sidebar-box { padding: 25px; margin-bottom: 25px; }
   .profile-mini {
     text-align: center;
@@ -249,16 +366,24 @@ onMounted(async () => {
     p { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
     .sidebar-stats { display: flex; justify-content: space-around; font-size: 0.8rem; color: #999; span { display: block; font-weight: bold; color: var(--blog-text); font-size: 1.1rem; } }
   }
-  .sticky-toc { position: sticky; top: 100px; }
+  .sticky-toc {
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 130px);
+    margin-bottom: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
   
   .toc-content {
-    max-height: 60vh; overflow-y: auto;
+    flex: 1;
+    overflow-y: auto;
     .toc-item {
       padding: 8px 15px; cursor: pointer; font-size: 0.9rem; color: var(--blog-text-secondary);
       border-left: 2px solid transparent; transition: all 0.3s;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       
-      &:hover { color: var(--primary-color); background: rgba(64, 158, 255, 0.05); border-left-color: var(--primary-color); }
+      &:hover, &.active { color: var(--primary-color); background: rgba(64, 158, 255, 0.05); border-left-color: var(--primary-color); }
       
       &.toc-level-1 { font-weight: bold; }
       &.toc-level-2 { padding-left: 30px; }
@@ -291,17 +416,34 @@ onMounted(async () => {
   .custom-heading {
     margin-top: 45px; margin-bottom: 20px; font-weight: 700; color: #66ccff; scroll-margin-top: 100px;
     display: flex; align-items: center; gap: 8px; transition: all 0.3s;
+    .highlight-word { color: inherit; font-family: inherit; font-weight: inherit; }
     &:hover { color: #409eff; .heading-icon { transform: rotate(180deg); color: #ff6b81; } }
     .heading-icon { transition: transform 0.5s ease; color: #66ccff; font-size: 1.2em; display: inline-block; }
   }
 
   p { margin-bottom: 15px; }
 
+  .highlight-word {
+    color: #ff6b81;
+    font-weight: 700;
+    font-family: 'Outfit', 'Inter', sans-serif;
+  }
+
+  code:not(pre code) {
+    color: #ff6b81;
+    background: rgba(255, 107, 129, 0.1);
+    padding: 3px 6px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+  }
+
   /* Mac Style Code Block */
   .mac-code-block {
-    background: #1e1e1e; border-radius: 10px; margin: 30px 0; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    background: #282c34; border-radius: 10px; margin: 30px 0; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
     .mac-header {
-      background: #2d2d2d; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333;
+      background: #21252b; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #181a1f;
       .mac-buttons {
         display: flex; gap: 8px;
         .mac-btn { width: 12px; height: 12px; border-radius: 50%; opacity: 0.8; transition: 0.3s; }
@@ -315,7 +457,8 @@ onMounted(async () => {
         .mac-copy { background: none; border: none; color: #888; cursor: pointer; font-size: 1.1rem; transition: 0.3s; padding: 0; outline: none; &:hover { color: white; } }
       }
     }
-    pre { background: transparent; padding: 20px; margin: 0; overflow-x: auto; color: #eee; font-family: 'Fira Code', monospace; line-height: 1.6; }
+    pre { background: transparent; padding: 20px; margin: 0; overflow-x: auto; color: #abb2bf; font-family: 'Fira Code', monospace; line-height: 1.6; }
+    .hljs { background: transparent; padding: 0; }
   }
 
   blockquote { border-left: 5px solid #66ccff; padding: 15px 25px; background: rgba(102, 204, 255, 0.05); margin: 30px 0; border-radius: 0 8px 8px 0; font-style: italic; color: var(--blog-text-secondary); }
@@ -326,6 +469,9 @@ onMounted(async () => {
     text-decoration: none;
     transition: all 0.3s ease;
     border-bottom: 1px dashed transparent;
+    .highlight-word {
+      color: inherit;
+    }
     &:hover {
       color: #ff6b81;
       border-bottom-color: #ff6b81;

@@ -24,9 +24,10 @@
           <el-table-column prop="sectionTitle" label="分组" width="160" show-overflow-tooltip />
           <el-table-column prop="name" label="名称" width="160" show-overflow-tooltip />
           <el-table-column prop="url" label="URL" min-width="220" show-overflow-tooltip />
-          <el-table-column label="操作" width="180">
+          <el-table-column label="操作" width="240">
             <template #default="scope">
               <el-button link type="primary" @click="edit(scope.row.id)">编辑</el-button>
+              <el-button link type="success" @click="duplicate(scope.row.id)">复制</el-button>
               <el-button link type="danger" @click="remove(scope.row.id)">删除</el-button>
             </template>
           </el-table-column>
@@ -158,6 +159,26 @@ const remove = async (id) => {
   ElMessage.success('删除成功')
   if (form.id === id) resetForm()
   await loadList()
+}
+
+const duplicate = async (id) => {
+  try {
+    const data = await adminFetchWebsiteLink(id)
+    await adminCreateWebsiteLink({
+      sectionTitle: data.sectionTitle,
+      sectionIcon: data.sectionIcon,
+      sectionOrder: data.sectionOrder,
+      name: `${data.name}（副本）`,
+      desc: data.desc,
+      url: data.url,
+      logo: data.logo || '',
+      sortOrder: data.sortOrder
+    })
+    ElMessage.success('导航副本创建成功')
+    await loadList()
+  } catch (error) {
+    ElMessage.error(error.message || '复制失败')
+  }
 }
 
 const logout = () => {
