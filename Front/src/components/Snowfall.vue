@@ -32,8 +32,10 @@ const createSnowflakes = () => {
 const update = () => {
   ctx.clearRect(0, 0, width, height)
   
-  // Set snowflake color based on theme
-  ctx.fillStyle = isDark.value ? 'rgba(255, 255, 255, 0.8)' : 'rgba(100, 150, 255, 0.4)'
+  // Improve visibility in daytime by using bright white flakes and soft glow.
+  ctx.fillStyle = isDark.value ? 'rgba(255, 255, 255, 0.82)' : 'rgba(255, 255, 255, 0.92)'
+  ctx.shadowBlur = isDark.value ? 4 : 6
+  ctx.shadowColor = isDark.value ? 'rgba(255, 255, 255, 0.35)' : 'rgba(120, 190, 255, 0.5)'
   
   snowflakes.forEach(flake => {
     ctx.beginPath()

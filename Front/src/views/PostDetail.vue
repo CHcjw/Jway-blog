@@ -16,7 +16,7 @@
                   <i class="bi bi-grid"></i> {{ post.category }}
                 </span>
                 <span class="divider">|</span>
-                <span class="meta-item"><i class="bi bi-stopwatch"></i> 阅读时长约 5 分钟</span>
+                <span class="meta-item"><i class="bi bi-stopwatch"></i> 阅读时长约 {{ readingTimeMinutes }} 分钟</span>
               </div>
             </div>
 
@@ -100,6 +100,7 @@
         </el-col>
       </el-row>
     </main>
+
   </div>
 </template>
 
@@ -112,7 +113,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
 import { extractHeadings } from '../utils/markdownToc'
-import { ElMessage, ElNotification } from 'element-plus'
+import { ElNotification } from 'element-plus'
 
 window.copyMdCode = (text) => {
   navigator.clipboard.writeText(decodeURIComponent(text)).then(() => {
@@ -123,6 +124,12 @@ window.copyMdCode = (text) => {
       position: 'top-left'
     })
   })
+}
+
+window.toggleMdCodeBlock = (id) => {
+  const block = document.getElementById(id)
+  if (!block) return
+  block.classList.toggle('expanded')
 }
 
 const route = useRoute()
@@ -137,33 +144,35 @@ const currentUrl = computed(() => window.location.href)
 
 const toc = computed(() => extractHeadings(post.value?.content || ''))
 
+const stripMarkdown = (content = '') => {
+  return content
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[#>*_~\-]/g, ' ')
+    .replace(/\r?\n/g, ' ')
+    .trim()
+}
+
+const estimateReadingMinutes = (content = '') => {
+  const plainText = stripMarkdown(content)
+  if (!plainText) return 1
+
+  const cjkChars = (plainText.match(/[\u4e00-\u9fff]/g) || []).length
+  const words = (plainText.match(/[A-Za-z0-9_]+/g) || []).length
+  const totalUnits = cjkChars + words
+  return Math.max(1, Math.ceil(totalUnits / 300))
+}
+
+const readingTimeMinutes = computed(() => estimateReadingMinutes(post.value?.content || ''))
+
 const processedContent = computed(() => {
   if (!post.value) return ''
   const headingIds = toc.value.map(item => item.id)
   let headingIndex = 0
   const originalHeadingOpen = md.renderer.rules.heading_open
-  const originalText = md.renderer.rules.text || function(tokens, idx, options, env, self) {
-    return md.utils.escapeHtml(tokens[idx].content)
-  }
-
-  md.renderer.rules.text = (tokens, idx, options, env, self) => {
-    const content = tokens[idx].content
-    const regex = /([a-zA-Z]+)/g
-    let html = ''
-    let lastIndex = 0
-    let match
-    while ((match = regex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        html += md.utils.escapeHtml(content.substring(lastIndex, match.index))
-      }
-      html += `<span class="highlight-word">${md.utils.escapeHtml(match[1])}</span>`
-      lastIndex = regex.lastIndex
-    }
-    if (lastIndex < content.length) {
-      html += md.utils.escapeHtml(content.substring(lastIndex))
-    }
-    return html
-  }
 
   md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
@@ -217,9 +226,14 @@ const processedContent = computed(() => {
       langUpper = 'VUE'
     }
     const encodedContent = encodeURIComponent(token.content)
+    const rawLines = token.content.replace(/\n$/, '').split('\n')
+    const lineCount = Math.max(rawLines.length, 1)
+    const lineNumbersHtml = Array.from({ length: lineCount }, (_, i) => `<li>${i + 1}</li>`).join('')
+    const collapsible = lineCount > 8
+    const blockId = `md-code-block-${idx}`
     
     return `
-      <div class="mac-code-block">
+      <div id="${blockId}" class="mac-code-block ${collapsible ? 'is-collapsible' : ''}">
         <div class="mac-header">
           <div class="mac-buttons">
             <span class="mac-btn close"></span>
@@ -233,14 +247,22 @@ const processedContent = computed(() => {
             </button>
           </div>
         </div>
-        <pre><code class="language-${finalLang} hljs">${contentHtml}</code></pre>
+        <div class="mac-code-content">
+          <ol class="mac-line-numbers">${lineNumbersHtml}</ol>
+          <pre><code class="language-${finalLang} hljs">${contentHtml}</code></pre>
+          ${collapsible ? '<div class="code-fade-mask"></div>' : ''}
+        </div>
+        ${collapsible ? `
+          <button class="code-collapse-toggle" onclick="window.toggleMdCodeBlock('${blockId}')" title="展开或收起代码">
+            <i class="bi bi-chevron-double-down"></i>
+          </button>
+        ` : ''}
       </div>
     `
   }
 
   const html = md.render(post.value.content)
   md.renderer.rules.heading_open = originalHeadingOpen
-  md.renderer.rules.text = originalText
   // clean up fence if needed, but it's fine globally on this md instance
   return html
 })
@@ -416,22 +438,15 @@ onUnmounted(() => {
   .custom-heading {
     margin-top: 45px; margin-bottom: 20px; font-weight: 700; color: #66ccff; scroll-margin-top: 100px;
     display: flex; align-items: center; gap: 8px; transition: all 0.3s;
-    .highlight-word { color: inherit; font-family: inherit; font-weight: inherit; }
-    &:hover { color: #409eff; .heading-icon { transform: rotate(180deg); color: #ff6b81; } }
+    &:hover { color: #409eff; .heading-icon { transform: rotate(180deg); color: var(--primary-color); } }
     .heading-icon { transition: transform 0.5s ease; color: #66ccff; font-size: 1.2em; display: inline-block; }
   }
 
   p { margin-bottom: 15px; }
 
-  .highlight-word {
-    color: #ff6b81;
-    font-weight: 700;
-    font-family: 'Outfit', 'Inter', sans-serif;
-  }
-
   code:not(pre code) {
-    color: #ff6b81;
-    background: rgba(255, 107, 129, 0.1);
+    color: var(--primary-color);
+    background: rgba(64, 158, 255, 0.1);
     padding: 3px 6px;
     border-radius: 6px;
     font-size: 0.9em;
@@ -442,6 +457,8 @@ onUnmounted(() => {
   /* Mac Style Code Block */
   .mac-code-block {
     background: #282c34; border-radius: 10px; margin: 30px 0; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    --code-line-height: 1.6;
+    --code-max-lines: 8;
     .mac-header {
       background: #21252b; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #181a1f;
       .mac-buttons {
@@ -457,7 +474,89 @@ onUnmounted(() => {
         .mac-copy { background: none; border: none; color: #888; cursor: pointer; font-size: 1.1rem; transition: 0.3s; padding: 0; outline: none; &:hover { color: white; } }
       }
     }
-    pre { background: transparent; padding: 20px; margin: 0; overflow-x: auto; color: #abb2bf; font-family: 'Fira Code', monospace; line-height: 1.6; }
+
+    .mac-code-content {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+    }
+
+    .mac-line-numbers {
+      margin: 0;
+      padding: 20px 10px 20px 14px;
+      list-style: none;
+      background: rgba(255, 255, 255, 0.02);
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      color: rgba(171, 178, 191, 0.55);
+      user-select: none;
+      li {
+        line-height: var(--code-line-height);
+        font-size: 0.95rem;
+        min-width: 2ch;
+        text-align: right;
+      }
+    }
+
+    pre {
+      background: transparent;
+      padding: 20px;
+      margin: 0;
+      overflow-x: auto;
+      color: #abb2bf;
+      font-family: 'Fira Code', monospace;
+      line-height: var(--code-line-height);
+    }
+
+    &.is-collapsible {
+      .mac-code-content {
+        max-height: calc((var(--code-max-lines) * var(--code-line-height) * 1em) + 40px);
+        overflow: hidden;
+      }
+      .code-fade-mask {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 70px;
+        background: linear-gradient(to bottom, rgba(40, 44, 52, 0), rgba(40, 44, 52, 0.95) 50%, rgba(40, 44, 52, 1) 100%);
+        pointer-events: none;
+      }
+    }
+
+    &.expanded {
+      .mac-code-content {
+        max-height: none !important;
+      }
+      .code-fade-mask {
+        display: none;
+      }
+      .code-collapse-toggle i {
+        transform: rotate(180deg);
+      }
+    }
+
+    .code-collapse-toggle {
+      width: 100%;
+      height: 34px;
+      border: none;
+      background: #21252b;
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      i {
+        font-size: 1.15rem;
+        transition: transform 0.25s ease;
+      }
+      &:hover {
+        color: #fff;
+        background: #1b1f24;
+      }
+    }
+
     .hljs { background: transparent; padding: 0; }
   }
 
@@ -469,12 +568,9 @@ onUnmounted(() => {
     text-decoration: none;
     transition: all 0.3s ease;
     border-bottom: 1px dashed transparent;
-    .highlight-word {
-      color: inherit;
-    }
     &:hover {
-      color: #ff6b81;
-      border-bottom-color: #ff6b81;
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
     }
   }
   
@@ -521,5 +617,8 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 900px) { .related-grid { grid-template-columns: 1fr; } .post-card { padding: 30px; } }
+@media (max-width: 900px) {
+  .related-grid { grid-template-columns: 1fr; }
+  .post-card { padding: 30px; }
+}
 </style>

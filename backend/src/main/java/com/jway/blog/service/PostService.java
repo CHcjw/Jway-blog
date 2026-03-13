@@ -25,7 +25,7 @@ public class PostService {
     }
 
     public PostPageDto getPosts(int page, int size) {
-        List<Post> ordered = sortByDateDesc(postRepository.findAll());
+        List<Post> ordered = sortByTopThenDateDesc(postRepository.findAll());
         return paginateAndMap(ordered, page, size);
     }
 
@@ -38,7 +38,7 @@ public class PostService {
     }
 
     public List<PostSummaryDto> getLatest(int limit) {
-        return sortByDateDesc(postRepository.findAll()).stream()
+        return sortByTopThenDateDesc(postRepository.findAll()).stream()
             .limit(limit)
             .map(BlogMapper::toPostSummary)
             .toList();
@@ -65,7 +65,7 @@ public class PostService {
         String c = normalize(category);
         String t = normalize(tag);
 
-        List<Post> filtered = sortByDateDesc(postRepository.findAll()).stream()
+        List<Post> filtered = sortByTopThenDateDesc(postRepository.findAll()).stream()
             .filter(p -> q == null
                 || p.getTitle().toLowerCase(Locale.ROOT).contains(q)
                 || p.getCategory().getName().toLowerCase(Locale.ROOT).contains(q))
@@ -87,9 +87,11 @@ public class PostService {
         return new PostPageDto(posts.size(), posts.subList(start, end).stream().map(BlogMapper::toPostSummary).toList());
     }
 
-    private List<Post> sortByDateDesc(List<Post> posts) {
+    private List<Post> sortByTopThenDateDesc(List<Post> posts) {
         return posts.stream()
-            .sorted(Comparator.comparing(Post::getPublishDate).reversed())
+            .sorted(Comparator
+                .comparing(Post::isTop, Comparator.reverseOrder())
+                .thenComparing(Post::getPublishDate, Comparator.reverseOrder()))
             .toList();
     }
 

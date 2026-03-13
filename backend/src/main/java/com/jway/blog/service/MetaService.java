@@ -9,6 +9,8 @@ import com.jway.blog.repository.TagRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class MetaService {
@@ -25,8 +27,12 @@ public class MetaService {
 
     public List<CategoryCountDto> categories() {
         List<Post> posts = postRepository.findAll();
+        Map<String, Long> categoryCountMap = posts.stream()
+            .collect(Collectors.groupingBy(p -> p.getCategory().getName(), Collectors.counting()));
+
         return categoryRepository.findAll().stream()
-            .map(c -> new CategoryCountDto(c.getName(), posts.stream().filter(p -> p.getCategory().getName().equals(c.getName())).count()))
+            .map(c -> new CategoryCountDto(c.getName(), categoryCountMap.getOrDefault(c.getName(), 0L)))
+            .filter(c -> c.count() > 0)
             .sorted(java.util.Comparator.comparing(CategoryCountDto::count).reversed())
             .toList();
     }

@@ -19,6 +19,10 @@
       <el-row :gutter="30">
         <!-- Left Column: Articles -->
         <el-col :xs="24" :sm="24" :md="18">
+          <!-- New Sections: Recommended Carousel and Categories -->
+          <recommend-carousel :posts="recommendedPosts" />
+          <category-box :categories="postStore.categories" />
+
           <div class="article-grid">
             <div
               v-for="(post, index) in displayedPosts" 
@@ -121,15 +125,41 @@
 
             <!-- Tags -->
             <div class="sidebar-box tags-cloud card-style scroll-reveal" style="--reveal-delay: 240ms">
-              <div class="box-title"><i class="bi bi-tags"></i> 标签云</div>
+              <div class="box-title"><i class="bi bi-tag-fill"></i> 标签</div>
               <div class="tag-cloud-wrapper">
-                <el-tag v-for="tag in postStore.tagNames.slice(0, 15)" :key="tag" 
-                        size="small" 
-                        class="tag-node clickable-tag" 
-                        type="info" 
-                        @click="router.push(`/tags?tag=${tag}`)">
-                  {{ tag }}
-                </el-tag>
+                <span v-for="(tag, index) in postStore.tags.slice(0, 20)" :key="tag.name" 
+                        class="tag-item-new" 
+                        :style="{ color: getTagColor(index) }"
+                        @click="router.push(`/tags?tag=${tag.name}`)">
+                  {{ tag.name }}<sup class="tag-count">{{ tag.count }}</sup>
+                </span>
+              </div>
+            </div>
+
+            <!-- Site Info -->
+            <div class="sidebar-box site-info card-style scroll-reveal" style="--reveal-delay: 300ms">
+              <div class="box-title"><i class="bi bi-bar-chart-line-fill"></i> 小站资讯</div>
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">文章数目：</span>
+                  <span class="info-value">{{ postStore.statistics.totalPosts || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">本站总字数：</span>
+                  <span class="info-value">{{ formatStat(postStore.statistics.totalWords) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">本站访客数：</span>
+                  <span class="info-value">{{ postStore.statistics.totalVisitors || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">本站总访问量：</span>
+                  <span class="info-value">{{ postStore.statistics.totalViews || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">最后更新时间：</span>
+                  <span class="info-value">{{ lastUpdateText }}</span>
+                </div>
               </div>
             </div>
           </aside>
@@ -162,6 +192,8 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePostStore } from '../store/posts'
 import { getOssUrl } from '../config/oss'
+import RecommendCarousel from '../components/RecommendCarousel.vue'
+import CategoryBox from '../components/CategoryBox.vue'
 
 const router = useRouter()
 const postStore = usePostStore()
@@ -194,6 +226,28 @@ const typeWriter = () => {
 
 const currentPage = ref(1)
 const displayedPosts = computed(() => postStore.posts)
+const recommendedPosts = computed(() => {
+  const top = postStore.posts.filter(p => p.isTop)
+  if (top.length > 0) return top.slice(0, 5)
+  return postStore.latestPosts.slice(0, 5)
+})
+const lastUpdateText = computed(() => {
+  if (!postStore.latestPosts || !postStore.latestPosts.length) return '-'
+  const latestPost = postStore.latestPosts[0]
+  if (!latestPost.date) return '-'
+  
+  const latestDate = new Date(latestPost.date.replace(/-/g, '/'))
+  const now = new Date()
+  const diff = now - latestDate
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  
+  if (days < 0) return '刚刚'
+  if (days === 0) return '今日'
+  if (days < 7) return `${days} 天前`
+  if (days < 30) return `${Math.floor(days / 7)} 周前`
+  if (days < 365) return `${Math.floor(days / 30)} 个月前`
+  return `${Math.floor(days / 365)} 年前`
+})
 const revealObserver = ref(null)
 
 const initRevealObserver = async () => {
@@ -227,12 +281,26 @@ const handlePageChange = async (val) => {
 
 const scrollToContent = () => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })
 const goToPost = (id) => router.push(`/post/${id}`)
+const getTagColor = (index) => {
+  const colors = ['#9b59b6', '#e67e22', '#2ecc71', '#3498db', '#f1c40f', '#e74c3c', '#1abc9c', '#34495e']
+  return colors[index % colors.length]
+}
+
+const formatStat = (num) => {
+  if (!num) return '0'
+  if (typeof num === 'string' && num.includes('w')) return num
+  if (num >= 10000) return (num / 10000).toFixed(1) + 'w'
+  return num
+}
+
 onMounted(async () => {
   typeWriter()
   await Promise.all([
     postStore.fetchPosts(1, 9),
     postStore.fetchLatest(5),
-    postStore.fetchTags()
+    postStore.fetchTags(),
+    postStore.fetchCategories(),
+    postStore.fetchStatistics()
   ])
   await initRevealObserver()
 })
@@ -302,7 +370,7 @@ onBeforeUnmount(() => {
 
 /* Envelope Card Design */
 .envelope-card {
-  cursor: pointer; display: flex; flex-direction: column; height: 450px;
+  cursor: pointer; display: flex; flex-direction: column; height: 380px;
   background: var(--blog-card-bg); overflow: hidden;
   
   .envelope-top {
@@ -350,7 +418,7 @@ onBeforeUnmount(() => {
 /* Pagination Centering and UI */
 .pagination-wrapper { 
   width: 100%;
-  margin-top: 60px; 
+  margin-top: 50px; 
   margin-bottom: 50px; /* added spacing below pagination before mobile sidebar */
   display: flex; 
   justify-content: center; 
@@ -436,16 +504,51 @@ onBeforeUnmount(() => {
     }
   }
   .tag-cloud-wrapper { 
-    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; 
-    .clickable-tag { 
-      cursor: pointer !important; 
-      transition: all 0.3s ease; 
-      font-weight: 600;
-      &:hover { 
-        background: var(--primary-color) !important; 
-        color: white !important; 
-        transform: scale(1.1) translateY(-2px);
-        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+    display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;
+    .tag-item-new {
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: flex-start;
+      
+      .tag-count {
+        font-size: 0.65rem;
+        margin-left: 2px;
+        opacity: 0.8;
+      }
+      
+      &:hover {
+        transform: scale(1.15) rotate(2deg);
+        filter: brightness(1.2);
+      }
+    }
+  }
+
+  .site-info {
+    .info-list {
+      margin-top: 15px;
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(150, 150, 150, 0.1);
+        
+        &:last-child { border-bottom: none; }
+        
+        .info-label {
+          color: var(--blog-text-secondary);
+          font-size: 0.95rem;
+          font-weight: 500;
+        }
+        
+        .info-value {
+          color: var(--blog-text);
+          font-weight: 700;
+          font-size: 0.95rem;
+        }
       }
     }
   }
@@ -453,7 +556,7 @@ onBeforeUnmount(() => {
 
 /* Bottom Explore Banner */
 .bottom-explore-banner {
-  margin-top: 60px;
+  margin-top: 10px;
   width: 100%;
   
   .banner-inner {

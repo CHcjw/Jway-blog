@@ -1,12 +1,16 @@
 <template>
   <div :class="['app-container', { 'dark': isDark }]">
     <div class="global-fixed-bg" :style="{ backgroundImage: `url(${computedHeroImage})` }"></div>
+    <Snowfall />
 
     <!-- Trailing Mouse Effect -->
     <MouseEffect />
 
     <!-- Floating Action Center -->
     <FloatingTools :toggleDarkFunc="toggleDark" />
+
+    <!-- Global Live2D Maid -->
+    <Live2DMaid />
 
     <!-- Scroll Cat Widget -->
     <ScrollCat />
@@ -302,6 +306,7 @@ import Snowfall from './components/Snowfall.vue'
 import MouseEffect from './components/MouseEffect.vue'
 import FloatingTools from './components/FloatingTools.vue'
 import ScrollCat from './components/ScrollCat.vue'
+import Live2DMaid from './components/Live2DMaid.vue'
 import { ElNotification } from 'element-plus'
 
 const isDark = useDark()
@@ -601,7 +606,7 @@ const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
 
 /* FOOTER ASYMMETRIC REBORN */
 .footer {
-  background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); border-radius: 40px 40px 0 0; padding: 100px 0 60px; margin-top: 40px; position: relative; border-top: 1px solid rgba(255,255,255,0.4); box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
+  background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); border-radius: 40px 40px 0 0; padding: 100px 0 60px; margin-top: 10px; position: relative; border-top: 1px solid rgba(255,255,255,0.4); box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
   .aurora-line { width: 100%; height: 3px; position: absolute; top: 0; background: linear-gradient(90deg, transparent, var(--primary-color), var(--accent-color), transparent); opacity: 0.6; border-radius: 40px 40px 0 0; }
   .footer-wrap { max-width: 1300px; margin: 0 auto; padding: 0 40px; }
   .footer-grid { 
