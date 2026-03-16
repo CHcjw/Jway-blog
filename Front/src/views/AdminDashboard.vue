@@ -253,6 +253,22 @@ onMounted(() => {
 }
 .admin-main { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; }
 .left, .right { padding: 14px; background: var(--blog-card-bg); }
+.right {
+  overflow: visible;
+  min-width: 0;
+}
+.right :deep(.el-form-item__content) {
+  min-width: 0;
+}
+.right :deep(.vditor) {
+  max-width: 100%;
+}
+.right :deep(.vditor-content),
+.right :deep(.vditor-wysiwyg),
+.right :deep(.vditor-ir),
+.right :deep(.vditor-sv) {
+  overflow-x: auto;
+}
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 .editor-tabs { width: 100%; }
 .preview-layout { display: grid; grid-template-columns: 260px 1fr; gap: 12px; min-height: 420px; }

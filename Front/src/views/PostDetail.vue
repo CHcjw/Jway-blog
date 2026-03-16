@@ -444,6 +444,17 @@ onUnmounted(() => {
 
   p { margin-bottom: 15px; }
 
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: min(72vh, 900px);
+    width: auto;
+    height: auto;
+    margin: 20px auto;
+    border-radius: 10px;
+    object-fit: contain;
+  }
+
   code:not(pre code) {
     color: var(--primary-color);
     background: rgba(64, 158, 255, 0.1);

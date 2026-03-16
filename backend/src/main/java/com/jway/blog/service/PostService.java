@@ -19,9 +19,11 @@ import java.util.Set;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final OssMediaService ossMediaService;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, OssMediaService ossMediaService) {
         this.postRepository = postRepository;
+        this.ossMediaService = ossMediaService;
     }
 
     public PostPageDto getPosts(int page, int size) {
@@ -34,13 +36,14 @@ public class PostService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         post.setViews(post.getViews() + 1);
         postRepository.save(post);
-        return BlogMapper.toPostDetail(post);
+        return rewrite(BlogMapper.toPostDetail(post));
     }
 
     public List<PostSummaryDto> getLatest(int limit) {
         return sortByTopThenDateDesc(postRepository.findAll()).stream()
             .limit(limit)
             .map(BlogMapper::toPostSummary)
+            .map(this::rewrite)
             .toList();
     }
 
@@ -57,6 +60,7 @@ public class PostService {
                 .thenComparing(Post::getPublishDate, Comparator.reverseOrder()))
             .limit(limit)
             .map(BlogMapper::toPostSummary)
+            .map(this::rewrite)
             .toList();
     }
 
@@ -84,7 +88,7 @@ public class PostService {
             return new PostPageDto(posts.size(), List.of());
         }
         int end = Math.min(start + safeSize, posts.size());
-        return new PostPageDto(posts.size(), posts.subList(start, end).stream().map(BlogMapper::toPostSummary).toList());
+        return new PostPageDto(posts.size(), posts.subList(start, end).stream().map(BlogMapper::toPostSummary).map(this::rewrite).toList());
     }
 
     private List<Post> sortByTopThenDateDesc(List<Post> posts) {
@@ -103,5 +107,33 @@ public class PostService {
 
     private String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private PostSummaryDto rewrite(PostSummaryDto dto) {
+        return new PostSummaryDto(
+            dto.id(),
+            dto.title(),
+            dto.summary(),
+            ossMediaService.toProxyUrl(dto.cover()),
+            dto.date(),
+            dto.category(),
+            dto.tags(),
+            dto.isTop()
+        );
+    }
+
+    private PostDetailDto rewrite(PostDetailDto dto) {
+        return new PostDetailDto(
+            dto.id(),
+            dto.title(),
+            dto.summary(),
+            ossMediaService.rewriteTextUrls(dto.content()),
+            ossMediaService.toProxyUrl(dto.cover()),
+            dto.date(),
+            dto.category(),
+            dto.tags(),
+            dto.views(),
+            dto.isTop()
+        );
     }
 }

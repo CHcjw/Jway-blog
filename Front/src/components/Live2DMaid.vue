@@ -8,7 +8,7 @@ import { onMounted } from 'vue'
 const WIDGET_SCRIPT_ID = 'jway-live2d-widget-script'
 const MODEL_JSON = '/live2d/hijiki/hijiki.model.json'
 const LEFT_PX = '12px'
-const BOTTOM_PX = '-45px'
+const BOTTOM_PX = '-40px'
 
 const loadScript = () =>
   new Promise((resolve, reject) => {

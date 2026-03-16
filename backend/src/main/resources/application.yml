@@ -10,3 +10,11 @@ spring:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+oss:
+  endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+  bucket: ${OSS_BUCKET:jway-blog}
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  public-host: ${OSS_PUBLIC_HOST:jway-blog.oss-cn-beijing.aliyuncs.com}
+  media-rate-limit-per-minute: ${OSS_MEDIA_RATE_LIMIT_PER_MINUTE:120}

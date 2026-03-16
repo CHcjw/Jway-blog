@@ -200,13 +200,13 @@
                 <template #reference>
                   <i class="bi bi-wechat"></i>
                 </template>
-                <img src="https://jway-blog.oss-cn-beijing.aliyuncs.com/blog/logo/wechat.png" style="width: 100%; height: auto; border-radius: 8px;" alt="WeChat QR" />
+                <img :src="wechatQrImage" style="width: 100%; height: auto; border-radius: 8px;" alt="WeChat QR" />
               </el-popover>
               <el-popover placement="top" :width="200" trigger="click">
                 <template #reference>
                   <i class="bi bi-tencent-qq"></i>
                 </template>
-                <img src="https://jway-blog.oss-cn-beijing.aliyuncs.com/blog/logo/qq.png" style="width: 100%; height: auto; border-radius: 8px;" alt="QQ QR" />
+                <img :src="qqQrImage" style="width: 100%; height: auto; border-radius: 8px;" alt="QQ QR" />
               </el-popover>
             </div>
           </div>
@@ -431,6 +431,8 @@ watch(
 )
 
 const avatarImage = getOssUrl('avatar', 'avatar.jpg')
+const wechatQrImage = getOssUrl('avatar', 'wechat.png')
+const qqQrImage = getOssUrl('avatar', 'qq.png')
 const dayHero = getOssUrl('backgrounds', 'day.png')
 const nightHero = getOssUrl('backgrounds', 'night.png')
 const computedHeroImage = computed(() => isDark.value ? nightHero : dayHero)
