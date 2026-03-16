@@ -1,5 +1,10 @@
 <template>
-  <div class="floating-tools" :class="{ 'is-active': isOpen }">
+  <div
+    class="floating-tools"
+    :class="{ 'is-active': isOpen }"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
+  >
     <!-- Sub Buttons -->
     <div class="tools-list">
       <div class="tool-item" @click="scrollToTop" title="回到顶部">
@@ -17,20 +22,39 @@
     </div>
 
     <!-- Main Gear Button -->
-    <div class="main-gear" @click="isOpen = !isOpen" :class="{ 'spinning': isOpen }">
+    <div class="main-gear" @click="togglePanel" :class="{ 'spinning': isOpen }">
       <i class="bi bi-gear-fill"></i>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useDark } from '@vueuse/core'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps(['toggleDarkFunc'])
 const isOpen = ref(false)
+const isMobileMode = ref(false)
 const isDark = useDark()
+let mediaQueryList = null
+
+const syncInteractionMode = () => {
+  if (typeof window === 'undefined' || !window.matchMedia) return
+  isMobileMode.value = window.matchMedia('(hover: none), (pointer: coarse)').matches
+}
+
+const handleMouseEnter = () => {
+  if (!isMobileMode.value) isOpen.value = true
+}
+
+const handleMouseLeave = () => {
+  if (!isMobileMode.value) isOpen.value = false
+}
+
+const togglePanel = () => {
+  if (isMobileMode.value) isOpen.value = !isOpen.value
+}
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -46,6 +70,7 @@ const handleToggleDark = (event) => {
   if (props.toggleDarkFunc) {
     props.toggleDarkFunc(event)
   }
+  if (isMobileMode.value) isOpen.value = false
 }
 
 const copyLink = () => {
@@ -60,6 +85,26 @@ const copyLink = () => {
   })
   isOpen.value = false
 }
+
+onMounted(() => {
+  syncInteractionMode()
+  if (!window.matchMedia) return
+  mediaQueryList = window.matchMedia('(hover: none), (pointer: coarse)')
+  if (mediaQueryList.addEventListener) {
+    mediaQueryList.addEventListener('change', syncInteractionMode)
+  } else if (mediaQueryList.addListener) {
+    mediaQueryList.addListener(syncInteractionMode)
+  }
+})
+
+onUnmounted(() => {
+  if (!mediaQueryList) return
+  if (mediaQueryList.removeEventListener) {
+    mediaQueryList.removeEventListener('change', syncInteractionMode)
+  } else if (mediaQueryList.removeListener) {
+    mediaQueryList.removeListener(syncInteractionMode)
+  }
+})
 </script>
 
 <style lang="scss" scoped>
