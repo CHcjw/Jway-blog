@@ -45,10 +45,14 @@ const currentPage = ref(1)
 const pageSize = 30
 const colorPalette = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#cc6699', '#36cfc9', '#722ed1']
 
-const totalTags = computed(() => postStore.tags.length)
+const filteredTags = computed(() =>
+  postStore.tags.filter((tag) => Number(tag?.count ?? 0) > 0)
+)
+
+const totalTags = computed(() => filteredTags.value.length)
 const pagedTags = computed(() => {
   const start = (currentPage.value - 1) * pageSize
-  return postStore.tags.slice(start, start + pageSize)
+  return filteredTags.value.slice(start, start + pageSize)
 })
 
 const hashCode = (text = '') => {
