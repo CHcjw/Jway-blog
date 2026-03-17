@@ -51,7 +51,7 @@ const initLive2D = async () => {
       vOffset: -55
     },
     mobile: {
-      show: true,
+      show: false,
       scale: 0.75
     },
     react: {
@@ -102,5 +102,12 @@ onMounted(() => {
   right: auto !important;
   bottom: -60px !important;
   top: auto !important;
+}
+
+@media (max-width: 768px) {
+  #live2d-widget,
+  #live2dcanvas {
+    display: none !important;
+  }
 }
 </style>

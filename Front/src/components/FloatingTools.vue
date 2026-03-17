@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="floating-tools"
     :class="{ 'is-active': isOpen }"
@@ -7,16 +7,16 @@
   >
     <!-- Sub Buttons -->
     <div class="tools-list">
-      <div class="tool-item" @click="scrollToTop" title="回到顶部">
+      <div class="tool-item" @click="scrollToTop" title="鍥炲埌椤堕儴">
         <i class="bi bi-chevron-double-up"></i>
       </div>
-      <div class="tool-item" @click="scrollToBottom" title="直达底部">
+      <div class="tool-item" @click="scrollToBottom" title="鐩磋揪搴曢儴">
         <i class="bi bi-chevron-double-down"></i>
       </div>
-      <div class="tool-item theme-btn" @click="handleToggleDark" title="切换模式">
+      <div class="tool-item theme-btn" @click="handleToggleDark" title="鍒囨崲妯″紡">
         <i class="bi" :class="isDark ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
       </div>
-      <div class="tool-item share-btn" @click="copyLink" title="分享链接">
+      <div class="tool-item share-btn" @click="copyLink" title="鍒嗕韩閾炬帴">
         <i class="bi bi-share-fill"></i>
       </div>
     </div>
@@ -77,7 +77,7 @@ const copyLink = () => {
   const url = window.location.href
   navigator.clipboard.writeText(url).then(() => {
     ElMessage({
-      message: '链接已复制到剪贴板 🚀',
+      message: '链接已复制到剪贴板',
       type: 'success',
       plain: true,
       customClass: 'custom-message'
@@ -189,8 +189,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .floating-tools { bottom: 20px; right: 20px; }
+  .floating-tools { bottom: 92px; right: 16px; }
   .main-gear { width: 48px; height: 48px; font-size: 1.4rem; }
   .tool-item { width: 40px; height: 40px; font-size: 1.1rem; }
 }
 </style>
+

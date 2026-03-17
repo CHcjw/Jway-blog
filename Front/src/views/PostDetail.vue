@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="post-detail-page" @copy="handleCopy">
     <!-- Main Content Grid -->
     <main class="post-main-container">
@@ -44,7 +44,7 @@
                 <strong>文章链接：</strong><el-link type="primary" :underline="false">{{ currentUrl }}</el-link>
               </div>
               <div class="copyright-item">
-                <strong>版权声明：</strong><span>本博客所有文章除特别声明外，均采用 CC BY-NC-SA 4.0 许可协议。转载请注明来自 Jway's Blog！</span>
+                <strong>版权声明：</strong><span>本博客所有文章除特别声明外，均采用 CC BY-NC-SA 4.0 许可协议。转载请注明来自 Jway's Blog。</span>
               </div>
             </div>
 
@@ -67,14 +67,14 @@
         </el-col>
 
         <!-- Right: Sidebar -->
-        <el-col :xs="0" :sm="0" :md="6" style="display: flex; flex-direction: column;">
+        <el-col :xs="0" :sm="0" :md="6" class="sidebar-col">
           <aside class="post-sidebar">
             <div class="sidebar-box profile-mini card-style">
               <div class="avatar-container">
                 <img :src="avatarImage" alt="avatar" class="avatar-sm avatar-rotate" />
               </div>
               <h4>Jway</h4>
-              <p>认真摸鱼中🐟</p>
+              <p>认真摸鱼中...</p>
               <div class="sidebar-stats">
                 <div class="s-item"><span>{{ postStore.totalPosts || 0 }}</span>文章</div>
                 <div class="s-item"><span>{{ postStore.tagNames.length || 0 }}</span>标签</div>
@@ -140,6 +140,7 @@ const md = new MarkdownIt({ html: true, linkify: true, typographer: true })
 const post = ref(null)
 const relatedPosts = ref([])
 const avatarImage = getOssUrl('avatar', 'avatar.jpg')
+
 const currentUrl = computed(() => window.location.href)
 
 const toc = computed(() => extractHeadings(post.value?.content || ''))
@@ -242,7 +243,7 @@ const processedContent = computed(() => {
           </div>
           <span class="mac-lang">${langUpper}</span>
           <div class="mac-actions">
-            <button class="mac-copy" onclick="window.copyMdCode('${encodedContent}')" title="复制代码">
+            <button class="mac-copy" onclick="window.copyMdCode('${encodedContent}')" title="澶嶅埗浠ｇ爜">
               <i class="bi bi-clipboard"></i>
             </button>
           </div>
@@ -430,6 +431,11 @@ onUnmounted(() => {
     .rp-img-box { width: 100px; height: 75px; flex-shrink: 0; overflow: hidden; border-radius: 8px; img { width: 100%; height: 100%; object-fit: cover; } }
     .rp-info { flex: 1; .rp-date { font-size: 0.75rem; color: #999; } .rp-title { font-size: 0.95rem; font-weight: 600; margin-top: 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } }
   }
+}
+
+.sidebar-col {
+  display: flex;
+  flex-direction: column;
 }
 
 .markdown-body {
@@ -631,5 +637,59 @@ onUnmounted(() => {
 @media (max-width: 900px) {
   .related-grid { grid-template-columns: 1fr; }
   .post-card { padding: 30px; }
+  .sidebar-col { display: none !important; }
+}
+
+@media (max-width: 768px) {
+  .post-detail-page { padding-top: 78px; }
+  .post-main-container { margin: 0 auto 36px; padding: 0 8px; }
+
+  .post-card {
+    min-height: auto;
+    padding: 18px 14px;
+
+    .inner-post-header {
+      margin-bottom: 22px;
+      padding-bottom: 14px;
+
+      .inner-post-title {
+        font-size: 1.55rem;
+        line-height: 1.35;
+        margin-bottom: 10px;
+      }
+
+      .inner-post-meta {
+        font-size: 0.8rem;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+    }
+  }
+
+  .markdown-body {
+    font-size: 0.98rem;
+    line-height: 1.82;
+
+    p { margin-bottom: 12px; }
+
+    .custom-heading {
+      margin-top: 28px;
+      margin-bottom: 12px;
+      font-size: 1.45rem;
+    }
+
+    img {
+      margin: 14px auto;
+      max-height: 46vh;
+    }
+  }
+
+  .post-copyright {
+    margin-top: 28px;
+    padding: 14px;
+    .copyright-item { font-size: 0.82rem; }
+  }
 }
 </style>
+
+
